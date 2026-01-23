@@ -1,1 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+fastapi_venv/
+.env/
+
+# macOS
 .DS_Store

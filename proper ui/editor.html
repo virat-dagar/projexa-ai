@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>WriteTrace Editor</title>
+
+    <!-- Quill CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/quill/2.0.0-dev.3/quill.snow.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/quill-better-table@1.2.10/dist/quill-better-table.css">
+
+    <link rel="stylesheet" href="editor.css">
+</head>
+
+<body>
+
+    <div class="editor-container">
+
+        <h2>Assignment Editor</h2>
+
+        <!-- Toolbar -->
+        <div id="toolbar" class="ql-toolbar ql-snow">
+            <span class="ql-formats">
+                <select class="ql-font">
+                    <option selected></option>
+                    <option value="serif"></option>
+                    <option value="monospace"></option>
+                </select>
+                <select class="ql-size">
+                    <option value="small"></option>
+                    <option selected></option>
+                    <option value="large"></option>
+                    <option value="huge"></option>
+                </select>
+                <select class="ql-header">
+                    <option value="1"></option>
+                    <option value="2"></option>
+                    <option selected></option>
+                </select>
+            </span>
+
+            <span class="ql-formats">
+                <button class="ql-bold" type="button"></button>
+                <button class="ql-italic" type="button"></button>
+                <button class="ql-underline" type="button"></button>
+            </span>
+
+            <span class="ql-formats">
+                <select class="ql-align">
+                    <option selected></option>
+                    <option value="center"></option>
+                    <option value="right"></option>
+                    <option value="justify"></option>
+                </select>
+                <button class="ql-list" value="ordered" type="button"></button>
+                <button class="ql-list" value="bullet" type="button"></button>
+                <button class="ql-indent" value="-1" type="button"></button>
+                <button class="ql-indent" value="+1" type="button"></button>
+            </span>
+
+            <span class="ql-formats">
+                <button class="ql-script" value="sub" type="button"></button>
+                <button class="ql-script" value="super" type="button"></button>
+                <button class="ql-blockquote" type="button"></button>
+                <button class="ql-code-block" type="button"></button>
+                <button class="ql-image" type="button"></button>
+                <button class="ql-clean" type="button"></button>
+            </span>
+
+        </div>
+        <div id="toolbar-extra">
+            <button onclick="submitAssignment()">Submit</button>
+            <button id="insert-table" type="button">Table</button>
+            <label for="line-spacing" class="line-spacing-label">Line Spacing</label>
+            <select id="line-spacing">
+                <option value="1">1.0</option>
+                <option value="1.5">1.5</option>
+                <option value="2">2.0</option>
+            </select>
+            <span class="table-hint">Right-click inside table for row/column options</span>
+            <button id="exportPDF" type="button">Export PDF</button>
+        </div>
+
+        <!-- Writing area -->
+        <div id="editor"></div>
+
+        <!-- Status -->
+        <div class="status-bar">
+            <span id="wordCount">Words: 0</span>
+        </div>
+
+    </div>
+
+    <!-- Quill JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/2.0.0-dev.3/quill.min.js"></script>
+    <script src="https://unpkg.com/quill-better-table@1.2.10/dist/quill-better-table.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="editor.js"></script>
+</body>
+
+</html>

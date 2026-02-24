@@ -1,0 +1,107 @@
+body {
+    font-family: Georgia, "Times New Roman", serif;
+    background: #f4f6f8;
+    margin: 0;
+}
+
+.editor-container {
+    max-width: 900px;
+    margin: 30px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+#editor {
+    height: 500px;
+}
+
+#toolbar {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+#toolbar .ql-formats {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 4px;
+}
+
+#toolbar .ql-formats button {
+    min-width: 30px;
+    height: 28px;
+    padding: 0 6px;
+    font-size: 12px;
+}
+
+.ql-container.ql-snow {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    height: 500px;
+}
+
+#toolbar-extra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+    border-bottom: 1px solid #ccc;
+    background: #fafafa;
+}
+
+.line-spacing-label {
+    font-size: 13px;
+    color: #444;
+    white-space: nowrap;
+}
+
+.status-bar {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.ql-editor p {
+    line-height: 1.6;
+}
+
+.ql-editor img {
+    max-width: 100%;
+    height: auto;
+    cursor: pointer;
+}
+
+#insert-table,
+#exportPDF,
+#line-spacing {
+    margin-left: 0;
+    padding: 5px 9px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 4px;
+    height: 32px;
+}
+
+#insert-table:hover,
+#exportPDF:hover {
+    background: #f8f8f8;
+}
+
+#line-spacing {
+    min-width: 84px;
+}
+
+#exportPDF {
+    white-space: nowrap;
+}

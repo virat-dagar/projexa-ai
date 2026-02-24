@@ -1,0 +1,7 @@
+font style - time new roman
+font size -
+    heading (chapter)--> 16
+    topic - 14
+    context 12
+page nos. to be mentioned except first page
+Draw.io

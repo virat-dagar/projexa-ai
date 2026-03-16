@@ -1,9 +1,3 @@
-/* =============================
-   WRITE TRACE — BEHAVIOR TRACKING
-   ============================= */
-
-/* ---------- MODULE SETUP ---------- */
-
 const BetterTableModule =
   (window.QuillBetterTable && window.QuillBetterTable.default) ||
   window.QuillBetterTable ||
@@ -15,7 +9,7 @@ if (BetterTableModule) {
 
 const Parchment = Quill.import("parchment");
 
-/* Line spacing support */
+
 const LineHeightStyle = new Parchment.Attributor.Style(
   "lineheight",
   "line-height",
@@ -27,7 +21,7 @@ const LineHeightStyle = new Parchment.Attributor.Style(
 
 Quill.register(LineHeightStyle, true);
 
-/* ---------- EDITOR INIT ---------- */
+
 
 const modules = { toolbar: "#toolbar" };
 
@@ -47,9 +41,7 @@ const quill = new Quill("#editor", {
   modules
 });
 
-/* =============================
-   BEHAVIOR TRACKING ENGINE
-   ============================= */
+
 
 const behaviorLog = [];
 
@@ -57,7 +49,7 @@ let sessionStart = Date.now();
 let lastKeyTime = Date.now();
 let lastLength = 0;
 
-/* ---------- WORD COUNT ---------- */
+
 
 function updateWordCount() {
   const text = quill.getText().trim();
@@ -68,7 +60,7 @@ function updateWordCount() {
 quill.on("text-change", updateWordCount);
 updateWordCount();
 
-/* ---------- TRACK TYPING ---------- */
+
 
 document.addEventListener("keydown", (e) => {
   const now = Date.now();
@@ -83,7 +75,7 @@ document.addEventListener("keydown", (e) => {
   lastKeyTime = now;
 });
 
-/* ---------- TRACK PASTE ---------- */
+
 
 quill.root.addEventListener("paste", (e) => {
   const pastedText =
@@ -97,7 +89,7 @@ quill.root.addEventListener("paste", (e) => {
   });
 });
 
-/* ---------- TRACK EDIT BURSTS ---------- */
+
 
 quill.on("text-change", (delta, oldDelta, source) => {
   const currentLength = quill.getLength();
@@ -111,7 +103,7 @@ quill.on("text-change", (delta, oldDelta, source) => {
 
   lastLength = currentLength;
 
-  /* detect large insert */
+
   if (delta.ops) {
     delta.ops.forEach(op => {
       if (op.insert && typeof op.insert === "string" && op.insert.length > 50) {
@@ -125,9 +117,7 @@ quill.on("text-change", (delta, oldDelta, source) => {
   }
 });
 
-/* =============================
-   TABLE INSERTION
-   ============================= */
+
 
 document.getElementById("insert-table").onclick = () => {
   const tableModule = quill.getModule("better-table");
@@ -139,9 +129,6 @@ document.getElementById("insert-table").onclick = () => {
   }
 };
 
-/* =============================
-   LINE SPACING
-   ============================= */
 
 document.getElementById("line-spacing").addEventListener("change", function () {
   const spacing = this.value;
@@ -154,9 +141,7 @@ document.getElementById("line-spacing").addEventListener("change", function () {
   }
 });
 
-/* =============================
-   EXPORT PDF
-   ============================= */
+
 
 document.getElementById("exportPDF").onclick = () => {
   const content = document.querySelector(".ql-editor");
@@ -172,9 +157,7 @@ document.getElementById("exportPDF").onclick = () => {
   html2pdf().set(opt).from(content).save();
 };
 
-/* =============================
-   SUBMIT WITH TRACKING DATA
-   ============================= */
+
 
 function submitAssignment() {
   const sessionEnd = Date.now();
@@ -210,5 +193,5 @@ function submitAssignment() {
     });
 }
 
-/* expose button usage */
+
 window.submitAssignment = submitAssignment;

@@ -1,13 +1,126 @@
-# Python
+# =========================
+# 🔥 OS FILES
+# =========================
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# =========================
+# 🧠 EDITORS / IDEs
+# =========================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+
+# =========================
+# 📦 NODE / JS / TS
+# =========================
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.yarn-cache/
+.yarnrc
+.cache/
+.parcel-cache/
+
+# Build outputs
+dist/
+build/
+.out/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+*.local
+
+# Misc
+*.tsbuildinfo
+
+# =========================
+# 🐍 PYTHON
+# =========================
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pyc.*
+*.py,cover
 
 # Virtual environments
 venv/
-fastapi_venv/
 .env/
+.venv/
+ENV/
 
-# macOS
-.DS_Store
+# Python build
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+# 🔐 SECRETS / CONFIG
+# =========================
+.env
+.env.*
+*.pem
+*.key
+
+# =========================
+# 📂 TEMP / CACHE
+# =========================
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# =========================
+# 📊 DATABASES
+# =========================
+*.sqlite
+*.db
+
+# =========================
+# 🧪 TEST OUTPUT
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# 🚀 MISC
+# =========================
+*.tgz
+*.gz
+*.zip
+*.tar

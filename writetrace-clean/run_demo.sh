@@ -3,18 +3,18 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$ROOT_DIR/integrity-checker/backend"
-FRONTEND_DIR="$ROOT_DIR/proper ui"
+BACKEND_DIR="$ROOT_DIR/backend"
+FRONTEND_DIR="$ROOT_DIR/frontend"
 BACKEND_PORT=8000
 FRONTEND_PORT=5500
 
-if [[ -x "$ROOT_DIR/integrity-checker/fastapi_venv/bin/python" ]]; then
-  PYTHON_BIN="$ROOT_DIR/integrity-checker/fastapi_venv/bin/python"
+if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+  PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
 else
   PYTHON_BIN="python3"
 fi
 
-echo "Starting WriteTrace demo..."
+echo "Starting WriteTrace clean demo..."
 echo "Backend:  http://127.0.0.1:$BACKEND_PORT"
 echo "Frontend: http://127.0.0.1:$FRONTEND_PORT"
 echo
@@ -39,7 +39,7 @@ FRONTEND_PID=$!
 sleep 2
 
 if ! kill -0 "$BACKEND_PID" >/dev/null 2>&1; then
-  echo "Backend failed to start. Check whether uvicorn is installed in the project venv and whether port $BACKEND_PORT is free."
+  echo "Backend failed to start. Check whether dependencies are installed and whether port $BACKEND_PORT is free."
   exit 1
 fi
 

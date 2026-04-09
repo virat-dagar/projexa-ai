@@ -30,3 +30,4 @@ pip install -r requirements.txt
 
 - This folder was created for review and cleanup.
 - The older prototype folders and extra repo files were intentionally left untouched outside this folder.
+- Ensure all dependencies are installed before running the demo.

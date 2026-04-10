@@ -388,7 +388,7 @@ async function submitAssignment() {
     events: eventLog
   };
 
-  setSubmitMessage("Submitting to the local backend...");
+  setSubmitMessage("Submitting to the server...");
   setStatus("Sending assignment and behavior log to the backend.");
 
   try {

@@ -17,8 +17,10 @@ const reassuringSignals = document.getElementById("reassuringSignals");
 
 const STORAGE_KEY = "writetrace-draft";
 const LARGE_INSERT_THRESHOLD = 200;
-const API_BASE = "http://127.0.0.1:8000";
-const eventLog = [];
+const API_BASE = window.location.hostname === "localhost"
+  ? "http://127.0.0.1:8000"
+  : "https://projexa-ai.onrender.com";
+  const eventLog = [];
 
 const sessionStart = Date.now();
 let lastKeyTime = sessionStart;

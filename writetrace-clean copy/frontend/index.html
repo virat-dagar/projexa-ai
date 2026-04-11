@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WriteTrace Editor</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Behavioral Academic Integrity Checker</p>
+        <h1>WriteTrace Assignment Editor</h1>
+        <p class="hero-copy">
+          A plain JavaScript writing workspace for academic drafting, submission tracking,
+          and print-to-PDF export.
+        </p>
+      </div>
+      <div class="hero-stats" aria-label="Session overview">
+        <div class="stat-card">
+          <span class="stat-label">Session</span>
+          <strong id="sessionDuration">00:00</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Words</span>
+          <strong id="wordCount">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Characters</span>
+          <strong id="charCount">0</strong>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Backend</span>
+          <strong id="backendStatus">Checking...</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="editor-shell" aria-label="Assignment editor">
+      <div class="toolbar" id="toolbar" role="toolbar" aria-label="Formatting tools">
+        <div class="toolbar-group">
+          <label class="control-label" for="blockFormat">Block</label>
+          <select id="blockFormat" title="Choose block style" aria-label="Choose block style">
+            <option value="P">Paragraph</option>
+            <option value="H1">Heading</option>
+            <option value="H2">Subheading</option>
+            <option value="BLOCKQUOTE">Quote</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="control-label" for="fontFamily">Font</label>
+          <select id="fontFamily" title="Choose font family" aria-label="Choose font family">
+            <option value="'Times New Roman', Times, serif">Times New Roman</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="Arial, sans-serif">Arial</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="control-label" for="fontSize">Size</label>
+          <select id="fontSize" title="Choose font size" aria-label="Choose font size">
+            <option value="12">12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="18">18</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group compact">
+          <button type="button" class="tool-button" data-command="bold" data-tooltip="Bold" aria-label="Bold">B</button>
+          <button type="button" class="tool-button" data-command="italic" data-tooltip="Italic" aria-label="Italic">I</button>
+          <button type="button" class="tool-button" data-command="underline" data-tooltip="Underline" aria-label="Underline">U</button>
+          <button type="button" class="tool-button" data-command="removeFormat" data-tooltip="Clear formatting" aria-label="Clear formatting">Tx</button>
+        </div>
+
+        <div class="toolbar-group compact">
+          <button type="button" class="tool-button" data-command="justifyLeft" data-tooltip="Align left" aria-label="Align left">L</button>
+          <button type="button" class="tool-button" data-command="justifyCenter" data-tooltip="Align center" aria-label="Align center">C</button>
+          <button type="button" class="tool-button" data-command="justifyRight" data-tooltip="Align right" aria-label="Align right">R</button>
+          <button type="button" class="tool-button" data-command="justifyFull" data-tooltip="Justify text" aria-label="Justify text">J</button>
+        </div>
+
+        <div class="toolbar-group compact">
+          <button type="button" class="tool-button" data-command="insertOrderedList" data-tooltip="Numbered list" aria-label="Numbered list">1.</button>
+          <button type="button" class="tool-button" data-command="insertUnorderedList" data-tooltip="Bulleted list" aria-label="Bulleted list">*</button>
+          <button type="button" class="tool-button" data-command="outdent" data-tooltip="Decrease indent" aria-label="Decrease indent">&lt;</button>
+          <button type="button" class="tool-button" data-command="indent" data-tooltip="Increase indent" aria-label="Increase indent">&gt;</button>
+        </div>
+
+        <div class="toolbar-group">
+          <label class="control-label" for="lineSpacing">Spacing</label>
+          <select id="lineSpacing" title="Choose line spacing" aria-label="Choose line spacing">
+            <option value="1">1.0</option>
+            <option value="1.5" selected>1.5</option>
+            <option value="2">2.0</option>
+          </select>
+        </div>
+
+        <div class="toolbar-group actions">
+          <button type="button" class="secondary-button" id="insertTable" title="Insert a 3 by 3 table" aria-label="Insert a 3 by 3 table">Insert Table</button>
+          <button type="button" class="secondary-button" id="saveDraft" title="Save draft locally" aria-label="Save draft locally">Save Draft</button>
+          <button type="button" class="secondary-button" id="exportPDF" title="Open print dialog or save as PDF" aria-label="Open print dialog or save as PDF">Print / Save PDF</button>
+          <button type="button" class="primary-button" id="submitAssignment" title="Submit assignment for integrity analysis" aria-label="Submit assignment for integrity analysis">Submit</button>
+        </div>
+      </div>
+
+      <div class="document-meta">
+        <div class="meta-chip">Recommended: Times New Roman</div>
+        <div class="meta-chip">Body: 12 pt</div>
+        <div class="meta-chip">Headings: 16 pt</div>
+        <div class="meta-chip">Subheadings: 14 pt</div>
+      </div>
+
+      <article class="paper-frame">
+        <div
+          id="editor"
+          class="editor-surface"
+          contenteditable="true"
+          spellcheck="true"
+          data-placeholder="Start writing your assignment here..."
+          aria-label="Editable assignment content"
+        ></div>
+      </article>
+
+      <div class="footer-bar">
+        <p id="editorStatus">Ready to write.</p>
+        <p id="submitResult" class="submit-result" aria-live="polite"></p>
+      </div>
+
+      <section class="analysis-panel" aria-label="Integrity analysis">
+        <div class="analysis-header">
+          <div>
+            <p class="analysis-eyebrow">Evaluation Result</p>
+            <h2>Submission Analysis</h2>
+          </div>
+          <div class="risk-badge risk-badge-neutral" id="riskBadge">Not scored yet</div>
+        </div>
+
+        <p id="analysisSummary" class="analysis-summary">
+          Submit the assignment to view the backend's risk score, summary, and evidence.
+        </p>
+
+        <div class="analysis-grid">
+          <article class="analysis-card">
+            <h3>Key Metrics</h3>
+            <dl class="metric-list" id="metricList">
+              <div class="metric-row">
+                <dt>Time spent</dt>
+                <dd>--</dd>
+              </div>
+              <div class="metric-row">
+                <dt>Words per minute</dt>
+                <dd>--</dd>
+              </div>
+              <div class="metric-row">
+                <dt>Paste ratio</dt>
+                <dd>--</dd>
+              </div>
+              <div class="metric-row">
+                <dt>Key events</dt>
+                <dd>--</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="analysis-card">
+            <h3>Top Risk Signals</h3>
+            <ul class="signal-list" id="riskSignals">
+              <li>No submission scored yet.</li>
+            </ul>
+          </article>
+
+          <article class="analysis-card">
+            <h3>Reassuring Signals</h3>
+            <ul class="signal-list" id="reassuringSignals">
+              <li>No reassuring signals yet.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="editor.js"></script>
+</body>
+</html>

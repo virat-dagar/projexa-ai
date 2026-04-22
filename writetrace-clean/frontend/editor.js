@@ -2,31 +2,85 @@ const editor = document.getElementById("editor");
 const blockFormat = document.getElementById("blockFormat");
 const fontFamily = document.getElementById("fontFamily");
 const fontSize = document.getElementById("fontSize");
-const lineSpacing = document.getElementById("lineSpacing");
 const sessionDuration = document.getElementById("sessionDuration");
 const wordCount = document.getElementById("wordCount");
 const charCount = document.getElementById("charCount");
 const backendStatus = document.getElementById("backendStatus");
 const editorStatus = document.getElementById("editorStatus");
 const submitResult = document.getElementById("submitResult");
-const riskBadge = document.getElementById("riskBadge");
-const analysisSummary = document.getElementById("analysisSummary");
-const metricList = document.getElementById("metricList");
-const riskSignals = document.getElementById("riskSignals");
-const reassuringSignals = document.getElementById("reassuringSignals");
+
+const studentModeButton = document.getElementById("studentModeButton");
+const teacherModeButton = document.getElementById("teacherModeButton");
+const studentDashboard = document.getElementById("studentDashboard");
+const teacherDashboard = document.getElementById("teacherDashboard");
+
+const studentNameInput = document.getElementById("studentName");
+const studentIdInput = document.getElementById("studentId");
+const assignmentSelect = document.getElementById("assignmentSelect");
+const assignmentPreview = document.getElementById("assignmentPreview");
+
+const newAssignmentTitle = document.getElementById("newAssignmentTitle");
+const newAssignmentDescription = document.getElementById("newAssignmentDescription");
+const newAssignmentDueDate = document.getElementById("newAssignmentDueDate");
+const newAssignmentMaxScore = document.getElementById("newAssignmentMaxScore");
+const createAssignmentButton = document.getElementById("createAssignmentButton");
+const teacherCreateStatus = document.getElementById("teacherCreateStatus");
+const refreshTeacherData = document.getElementById("refreshTeacherData");
+const teacherAssignmentList = document.getElementById("teacherAssignmentList");
+const teacherSubmissionList = document.getElementById("teacherSubmissionList");
+const teacherSubmissionDetail = document.getElementById("teacherSubmissionDetail");
+const toolbar = document.getElementById("toolbar");
+const submitAssignmentButton = document.getElementById("submitAssignment");
 
 const STORAGE_KEY = "writetrace-draft";
+const ASSIGNMENT_STATE_PREFIX = "writetrace-assignment-state-";
 const LARGE_INSERT_THRESHOLD = 200;
-const API_BASE = window.location.hostname === "localhost"
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
+const API_BASE = LOCAL_HOSTNAMES.has(window.location.hostname)
   ? "http://127.0.0.1:8000"
   : "https://projexa-ai.onrender.com";
-  const eventLog = [];
 
-const sessionStart = Date.now();
-let lastKeyTime = sessionStart;
+let eventLog = [];
+let sessionStart = null;
+let lastKeyTime = null;
 let lastText = "";
+let studentAssignments = [];
+let selectedTeacherAssignmentId = "";
+let currentAssignmentId = "";
 
 document.execCommand("styleWithCSS", false, true);
+
+function ensureSessionStarted(now = Date.now()) {
+  if (typeof sessionStart !== "number") {
+    sessionStart = now;
+  }
+  if (typeof lastKeyTime !== "number") {
+    lastKeyTime = sessionStart;
+  }
+}
+
+function setEditorEnabled(enabled) {
+  const nextValue = enabled ? "true" : "false";
+  if (editor.getAttribute("contenteditable") !== nextValue) {
+    editor.setAttribute("contenteditable", nextValue);
+  }
+
+  editor.classList.toggle("is-disabled", !enabled);
+  if (submitAssignmentButton) {
+    submitAssignmentButton.disabled = !enabled;
+  }
+
+  if (toolbar) {
+    toolbar.classList.toggle("is-disabled", !enabled);
+    toolbar.querySelectorAll("button, select").forEach((control) => {
+      // Keep mode switch buttons outside toolbar unaffected.
+      if (control.id === "studentModeButton" || control.id === "teacherModeButton") {
+        return;
+      }
+      control.disabled = !enabled;
+    });
+  }
+}
 
 function ensureEditorSeed() {
   if (!editor.innerHTML.trim()) {
@@ -55,22 +109,94 @@ function updateStats() {
 }
 
 function updateSessionClock() {
+  if (typeof sessionStart !== "number") {
+    sessionDuration.textContent = "00:00";
+    return;
+  }
+
   const seconds = Math.floor((Date.now() - sessionStart) / 1000);
   sessionDuration.textContent = formatDuration(seconds);
 }
 
-function saveDraft(showMessage = false) {
-  localStorage.setItem(STORAGE_KEY, editor.innerHTML);
+function getAssignmentDraftKey(assignmentId = currentAssignmentId) {
+  return assignmentId ? `${ASSIGNMENT_STATE_PREFIX}${assignmentId}` : STORAGE_KEY;
+}
+
+function createEmptyAssignmentState() {
+  return {
+    html: "",
+    eventLog: [],
+    sessionStart: null,
+    lastKeyTime: null,
+    lastText: ""
+  };
+}
+
+function serializeAssignmentState() {
+  return {
+    html: editor.innerHTML,
+    eventLog,
+    sessionStart,
+    lastKeyTime,
+    lastText
+  };
+}
+
+function applyAssignmentState(state) {
+  editor.innerHTML = state.html || "";
+  if (!editor.innerHTML.trim()) {
+    ensureEditorSeed();
+  }
+
+  eventLog = Array.isArray(state.eventLog) ? state.eventLog : [];
+  sessionStart = typeof state.sessionStart === "number" ? state.sessionStart : null;
+  lastKeyTime = typeof state.lastKeyTime === "number" ? state.lastKeyTime : null;
+  lastText = typeof state.lastText === "string" ? state.lastText : getPlainText();
+  updateStats();
+  updateSessionClock();
+}
+
+function readStoredAssignmentState(assignmentId = currentAssignmentId) {
+  const rawValue = localStorage.getItem(getAssignmentDraftKey(assignmentId));
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue);
+    if (parsedValue && typeof parsedValue === "object") {
+      return parsedValue;
+    }
+  } catch (error) {
+    return {
+      ...createEmptyAssignmentState(),
+      html: rawValue
+    };
+  }
+
+  return null;
+}
+
+function saveDraft(showMessage = false, assignmentId = currentAssignmentId) {
+  localStorage.setItem(getAssignmentDraftKey(assignmentId), JSON.stringify(serializeAssignmentState()));
   if (showMessage) {
     setStatus("Draft saved locally on this device.");
   }
 }
 
-function restoreDraft() {
-  const draft = localStorage.getItem(STORAGE_KEY);
-  if (draft) {
-    editor.innerHTML = draft;
-    setStatus("Restored your last local draft.");
+function getStoredDraft(assignmentId = currentAssignmentId) {
+  const storedState = readStoredAssignmentState(assignmentId);
+  return storedState ? storedState.html : null;
+}
+
+function restoreDraft(assignmentId = currentAssignmentId) {
+  const storedState = readStoredAssignmentState(assignmentId);
+  if (storedState) {
+    applyAssignmentState(storedState);
+    setStatus("Restored this assignment's saved draft.");
+  } else {
+    applyAssignmentState(createEmptyAssignmentState());
+    setStatus("Fresh assignment draft ready.");
   }
 }
 
@@ -114,12 +240,10 @@ function runCommand(command, value = null) {
 
 function applyBlockFormat(tagName) {
   runCommand("formatBlock", `<${tagName}>`);
-  setStatus(`Applied ${tagName.toLowerCase()} formatting.`);
 }
 
 function applyFontFamily(family) {
   runCommand("fontName", family);
-  setStatus("Updated font family.");
 }
 
 function applyFontSize(size) {
@@ -134,7 +258,6 @@ function applyFontSize(size) {
   });
 
   editor.dispatchEvent(new Event("input", { bubbles: true }));
-  setStatus(`Applied ${size} pt text.`);
 }
 
 function getClosestBlock(node) {
@@ -150,145 +273,223 @@ function getClosestBlock(node) {
   return editor.firstElementChild || editor;
 }
 
-function getSelectedBlocks() {
+function getCurrentSectionLabel() {
   const selection = window.getSelection();
-  if (!selection || selection.rangeCount === 0 || !editor.contains(selection.anchorNode)) {
-    return [];
+  if (!selection || selection.rangeCount === 0) {
+    return "Body";
   }
 
-  const range = selection.getRangeAt(0);
-  const blocks = new Set();
-  const fallbackBlock = getClosestBlock(selection.anchorNode);
-
-  if (fallbackBlock) {
-    blocks.add(fallbackBlock);
+  const anchorBlock = getClosestBlock(selection.anchorNode);
+  if (!anchorBlock) {
+    return "Body";
   }
 
-  const walker = document.createTreeWalker(
-    editor,
-    NodeFilter.SHOW_ELEMENT,
-    {
-      acceptNode(node) {
-        return /^(P|H1|H2|BLOCKQUOTE|LI|TD|TH)$/.test(node.tagName)
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_SKIP;
+  let cursor = anchorBlock;
+  while (cursor) {
+    if (cursor.tagName === "H1" || cursor.tagName === "H2") {
+      const headingText = cursor.innerText.trim();
+      if (headingText) {
+        return headingText.slice(0, 80);
       }
     }
-  );
-
-  let currentNode = walker.nextNode();
-  while (currentNode) {
-    if (range.intersectsNode(currentNode)) {
-      blocks.add(currentNode);
-    }
-    currentNode = walker.nextNode();
+    cursor = cursor.previousElementSibling;
   }
 
-  return Array.from(blocks);
-}
-
-function applyLineSpacing(value) {
-  const blocks = getSelectedBlocks();
-  if (!blocks.length) {
-    setStatus("Place the cursor in a paragraph or select text to change spacing.", "warning");
-    return;
-  }
-
-  blocks.forEach((block) => {
-    block.style.lineHeight = value;
-  });
-
-  setStatus(`Line spacing set to ${value}.`);
-  saveDraft();
-}
-
-function insertTable() {
-  const tableMarkup = [
-    "<table>",
-    "<tbody>",
-    "<tr><td>Column 1</td><td>Column 2</td><td>Column 3</td></tr>",
-    "<tr><td><br></td><td><br></td><td><br></td></tr>",
-    "<tr><td><br></td><td><br></td><td><br></td></tr>",
-    "</tbody>",
-    "</table>",
-    "<p><br></p>"
-  ].join("");
-
-  runCommand("insertHTML", tableMarkup);
-  setStatus("Inserted a 3 x 3 table.");
+  return "Body";
 }
 
 function exportToPdf() {
-  setStatus("Opening the print dialog. Choose 'Save as PDF' in your browser.");
+  setStatus("Opening print dialog.");
   window.print();
 }
 
-function createMetricRow(label, value) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "metric-row";
+function toggleMode(mode) {
+  const isStudent = mode === "student";
+  studentDashboard.classList.toggle("hidden", !isStudent);
+  teacherDashboard.classList.toggle("hidden", isStudent);
+  studentModeButton.classList.toggle("active", isStudent);
+  teacherModeButton.classList.toggle("active", !isStudent);
 
-  const term = document.createElement("dt");
-  term.textContent = label;
-
-  const description = document.createElement("dd");
-  description.textContent = value;
-
-  wrapper.append(term, description);
-  return wrapper;
+  if (!isStudent) {
+    loadTeacherAssignments();
+  }
 }
 
-function renderSignalList(target, signals, emptyMessage) {
-  target.innerHTML = "";
+function persistCurrentAssignmentDraft() {
+  if (currentAssignmentId) {
+    saveDraft(false, currentAssignmentId);
+  }
+}
 
-  if (!signals.length) {
-    const item = document.createElement("li");
-    item.textContent = emptyMessage;
-    target.appendChild(item);
+function renderAssignmentPreview() {
+  const selected = studentAssignments.find((item) => item.id === assignmentSelect.value);
+  if (!selected) {
+    assignmentPreview.textContent = "No assignment selected.";
     return;
   }
 
-  signals.forEach((signal) => {
-    const item = document.createElement("li");
-    item.textContent = `${signal.label}: ${signal.detail}`;
-    target.appendChild(item);
+  assignmentPreview.innerHTML = `
+    <strong>${selected.title}</strong><br>
+    Due: ${selected.due_date}<br>
+    Max Score: ${selected.max_score}<br><br>
+    ${selected.description}
+  `;
+}
+
+function createTeacherItem({ title, body, meta, actionLabel, onClick }) {
+  const item = document.createElement("div");
+  item.className = "teacher-item";
+
+  const header = document.createElement("div");
+  header.className = "teacher-item-header";
+
+  const titleEl = document.createElement("h3");
+  titleEl.textContent = title;
+
+  const actionButton = document.createElement("button");
+  actionButton.type = "button";
+  actionButton.className = "secondary-button";
+  actionButton.textContent = actionLabel;
+  actionButton.addEventListener("click", onClick);
+
+  header.append(titleEl, actionButton);
+
+  const bodyEl = document.createElement("p");
+  bodyEl.textContent = body;
+
+  const metaEl = document.createElement("p");
+  metaEl.className = "meta";
+  metaEl.textContent = meta;
+
+  item.append(header, bodyEl, metaEl);
+  return item;
+}
+
+function renderTeacherAssignments(assignments) {
+  teacherAssignmentList.innerHTML = "";
+
+  if (!assignments.length) {
+    teacherAssignmentList.textContent = "No assignments yet.";
+    return;
+  }
+
+  assignments.forEach((assignment) => {
+    const avgRiskText = assignment.average_risk_score == null
+      ? "No submissions yet"
+      : `Average risk ${assignment.average_risk_score}/100`;
+
+    const item = createTeacherItem({
+      title: assignment.title,
+      body: assignment.description,
+      meta: `Due ${assignment.due_date} | Submissions ${assignment.submission_count} | ${avgRiskText}`,
+      actionLabel: "View Submissions",
+      onClick: () => loadAssignmentSubmissions(assignment.id)
+    });
+
+    teacherAssignmentList.appendChild(item);
   });
 }
 
-function renderAnalysis(data) {
-  const riskLevel = data.risk_level || "low";
-  const score = data.risk_score ?? data.risk ?? 0;
-  const metrics = data.metrics || {};
-  const signals = Array.isArray(data.signals) ? data.signals : [];
+function renderTeacherSubmissions(assignment, submissions) {
+  teacherSubmissionList.innerHTML = "";
 
-  riskBadge.className = "risk-badge";
-  riskBadge.classList.add(`risk-badge-${riskLevel}`);
-  riskBadge.textContent = `${riskLevel.toUpperCase()} RISK · ${score}/100`;
+  if (!submissions.length) {
+    teacherSubmissionList.textContent = `No submissions yet for ${assignment.title}.`;
+    return;
+  }
 
-  analysisSummary.textContent = data.summary || "Submission scored successfully.";
+  submissions.forEach((submission) => {
+    const item = createTeacherItem({
+      title: `${submission.student_name} (${submission.student_id})`,
+      body: submission.summary,
+      meta: `Risk ${submission.risk_score}/100 (${submission.risk_level}) | Pasted sections ${submission.paste_section_count} | Flagged sections ${submission.flagged_section_count}`,
+      actionLabel: "Review",
+      onClick: () => loadSubmissionDetail(submission.id)
+    });
 
-  metricList.innerHTML = "";
-  metricList.append(
-    createMetricRow("Time spent", `${metrics.time_spent_minutes ?? "--"} min`),
-    createMetricRow("Words per minute", String(metrics.words_per_minute ?? "--")),
-    createMetricRow("Paste ratio", `${metrics.paste_ratio_percent ?? "--"}%`),
-    createMetricRow("Typed ratio", `${metrics.typed_ratio_percent ?? "--"}%`),
-    createMetricRow("Paste events", String(metrics.paste_events ?? "--")),
-    createMetricRow("Largest paste", `${metrics.largest_paste_chars ?? "--"} chars`),
-    createMetricRow("Sudden inserts", String(metrics.sudden_inserts ?? "--")),
-    createMetricRow("Key events", String(metrics.key_events ?? "--"))
-  );
+    teacherSubmissionList.appendChild(item);
+  });
+}
 
-  renderSignalList(
-    riskSignals,
-    signals.filter((signal) => signal.direction === "risk"),
-    "No major risk signals were detected."
-  );
+function renderDetailList(items) {
+  if (!items.length) {
+    return "<p>None detected.</p>";
+  }
 
-  renderSignalList(
-    reassuringSignals,
-    signals.filter((signal) => signal.direction === "reassuring"),
-    "No reassuring signals were recorded for this submission."
-  );
+  return `<ul class="detail-list">${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+}
+
+function renderSubmissionDetail(detail) {
+  const analysis = detail.analysis || {};
+  const metrics = analysis.metrics || {};
+  const riskSignals = Array.isArray(analysis.signals)
+    ? analysis.signals.filter((signal) => signal.direction === "risk")
+    : [];
+
+  const pastedRows = (detail.paste_sections || []).map((section) => {
+    const snippet = section.snippet ? `"${section.snippet}"` : "No snippet captured";
+    return `Section: ${section.target_section || "Body"} | Length: ${section.length_chars} chars | ${snippet}`;
+  });
+
+  const flaggedRows = (detail.flagged_sections || []).map((section) => {
+    const reasonText = Array.isArray(section.reasons) ? section.reasons.join("; ") : "Flagged";
+    return `Sentence ${section.section_index}: ${section.text_excerpt} (${reasonText})`;
+  });
+
+  const riskRows = riskSignals.slice(0, 6).map((signal) => `${signal.label}: ${signal.detail}`);
+
+  teacherSubmissionDetail.innerHTML = `
+    <strong>Assignment:</strong> ${detail.assignment_title}<br>
+    <strong>Student:</strong> ${detail.student_name} (${detail.student_id})<br>
+    <strong>Submitted:</strong> ${detail.submitted_at}
+
+    <div class="detail-metric-grid">
+      <div class="detail-chip">Combined Risk: ${analysis.risk_score ?? "--"}/100</div>
+      <div class="detail-chip">Risk Level: ${analysis.risk_level ?? "--"}</div>
+      <div class="detail-chip">Behavior Score: ${analysis.behavior_analysis?.risk_score ?? "--"}/100</div>
+      <div class="detail-chip">Content Score: ${analysis.content_analysis?.risk_score ?? "--"}/100</div>
+      <div class="detail-chip">Paste Ratio: ${metrics.paste_ratio_percent ?? "--"}%</div>
+      <div class="detail-chip">Words Per Minute: ${metrics.words_per_minute ?? "--"}</div>
+    </div>
+
+    <h3>Top Risk Signals</h3>
+    ${renderDetailList(riskRows)}
+
+    <h3>Pasted Sections</h3>
+    ${renderDetailList(pastedRows)}
+
+    <h3>Flagged Assignment Sections</h3>
+    ${renderDetailList(flaggedRows)}
+  `;
+}
+
+function syncAssignmentSelection() {
+  const availableIds = new Set(studentAssignments.map((assignment) => assignment.id));
+  const desiredId =
+    (currentAssignmentId && availableIds.has(currentAssignmentId) && currentAssignmentId)
+    || (assignmentSelect.value && availableIds.has(assignmentSelect.value) && assignmentSelect.value)
+    || (studentAssignments.length ? studentAssignments[0].id : "");
+
+  if (!desiredId) {
+    persistCurrentAssignmentDraft();
+    currentAssignmentId = "";
+    assignmentSelect.value = "";
+    applyAssignmentState(createEmptyAssignmentState());
+    assignmentPreview.textContent = "No assignments available yet. Ask a teacher to create one.";
+    setEditorEnabled(false);
+    setStatus("Waiting for an assignment before drafting.", "neutral");
+    return;
+  }
+
+  if (desiredId !== currentAssignmentId) {
+    persistCurrentAssignmentDraft();
+    currentAssignmentId = desiredId;
+  }
+
+  assignmentSelect.value = desiredId;
+  restoreDraft(desiredId);
+  setEditorEnabled(true);
+  renderAssignmentPreview();
 }
 
 async function checkBackendHealth() {
@@ -313,6 +514,9 @@ function trackKeyboardEvent(event) {
   }
 
   const now = Date.now();
+  if (typeof lastKeyTime !== "number") {
+    lastKeyTime = now;
+  }
 
   eventLog.push({
     type: "key",
@@ -325,17 +529,22 @@ function trackKeyboardEvent(event) {
 }
 
 function trackPaste(event) {
+  ensureSessionStarted();
   const pastedText = (event.clipboardData || window.clipboardData).getData("text");
+  const snippet = pastedText.replace(/\s+/g, " ").trim().slice(0, 220);
 
   eventLog.push({
     type: "paste",
     length: pastedText.length,
     words: getWordCount(pastedText.trim()),
+    target_section: getCurrentSectionLabel(),
+    snippet,
     time: Date.now()
   });
 }
 
 function trackInput() {
+  ensureSessionStarted();
   const currentText = getPlainText();
   const delta = currentText.length - lastText.length;
   const timestamp = Date.now();
@@ -369,16 +578,62 @@ function trackInput() {
   saveDraft();
 }
 
+async function loadPublicAssignments() {
+  try {
+    const response = await fetch(`${API_BASE}/assignments/public`);
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+
+    const data = await response.json();
+    studentAssignments = Array.isArray(data.assignments) ? data.assignments : [];
+
+    assignmentSelect.innerHTML = '<option value="">Select an assignment</option>';
+    studentAssignments.forEach((assignment) => {
+      const option = document.createElement("option");
+      option.value = assignment.id;
+      option.textContent = `${assignment.title} (due ${assignment.due_date})`;
+      assignmentSelect.appendChild(option);
+    });
+
+    syncAssignmentSelection();
+  } catch (error) {
+    console.error("Failed to load assignments:", error);
+    assignmentPreview.textContent = "Could not load assignments from backend.";
+  }
+}
+
 async function submitAssignment() {
   const text = getPlainText();
   const sessionEnd = Date.now();
+  const assignmentId = assignmentSelect.value;
+  const studentName = studentNameInput.value.trim();
+  const studentId = studentIdInput.value.trim();
+
+  if (!assignmentId) {
+    setSubmitMessage("Select an assignment before submitting.", "error");
+    return;
+  }
+
+  if (!studentName || !studentId) {
+    setSubmitMessage("Enter your student name and ID before submitting.", "error");
+    return;
+  }
 
   if (!text) {
-      setSubmitMessage("Write something before submitting.", "error");
-      return;
+    setSubmitMessage("Write something before submitting.", "error");
+    return;
+  }
+
+  // If the draft text exists due to a restore, but no new input happened this load,
+  // fall back to counting from now so duration doesn't explode to days.
+  if (typeof sessionStart !== "number") {
+    ensureSessionStarted(sessionEnd);
   }
 
   const payload = {
+    student_name: studentName,
+    student_id: studentId,
     text,
     total_chars: text.length,
     total_words: getWordCount(text),
@@ -388,11 +643,11 @@ async function submitAssignment() {
     events: eventLog
   };
 
-  setSubmitMessage("Submitting to the server...");
-  setStatus("Sending assignment and behavior log to the backend.");
+  setSubmitMessage("Submitting to teacher dashboard...");
+  setStatus("Sending submission for teacher review.");
 
   try {
-    const response = await fetch(`${API_BASE}/submit`, {
+    const response = await fetch(`${API_BASE}/assignments/${assignmentId}/submit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -405,27 +660,146 @@ async function submitAssignment() {
     }
 
     const data = await response.json();
-    renderAnalysis(data);
-    setSubmitMessage(
-      `Backend connected. Risk score ${data.risk_score ?? data.risk}/100 with ${data.risk_level ?? "unknown"} risk.`,
-      "success"
-    );
-    setStatus("Submission finished. The analysis panel has been updated.");
+    setSubmitMessage(data.message || "Submitted successfully for teacher review.", "success");
+    setStatus("Submission complete. Scores are visible to teachers in their dashboard.");
     setBackendStatus("Online", "online");
-    console.log("Submission payload", payload);
-    console.log("Server response", data);
+
+    // Start a fresh evidence log for any subsequent resubmission attempt.
+    // Keep the text draft, but do not carry old paste/key/edit evidence forward.
+    eventLog = [];
+    sessionStart = null;
+    lastKeyTime = null;
+    lastText = getPlainText();
+    saveDraft(false, assignmentId);
   } catch (error) {
     console.error("Submission failed:", error);
-    setSubmitMessage("Submission failed. Make sure the FastAPI backend is running on port 8000.", "error");
-    setStatus("Could not reach the backend. Start the local API and try again.", "error");
+    setSubmitMessage("Submission failed. Make sure backend is running on port 8000.", "error");
+    setStatus("Could not reach backend. Start API and try again.", "error");
     setBackendStatus("Offline", "offline");
   }
+}
+
+async function createAssignment() {
+  const payload = {
+    title: newAssignmentTitle.value.trim(),
+    description: newAssignmentDescription.value.trim(),
+    due_date: newAssignmentDueDate.value,
+    max_score: Number(newAssignmentMaxScore.value || "100")
+  };
+
+  if (!payload.title || !payload.description || !payload.due_date) {
+    teacherCreateStatus.textContent = "Title, description, and due date are required.";
+    return;
+  }
+
+  teacherCreateStatus.textContent = "Creating assignment...";
+
+  try {
+    const response = await fetch(`${API_BASE}/teacher/assignments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+
+    teacherCreateStatus.textContent = "Assignment created.";
+    newAssignmentTitle.value = "";
+    newAssignmentDescription.value = "";
+    newAssignmentDueDate.value = "";
+    newAssignmentMaxScore.value = "100";
+    await Promise.all([loadTeacherAssignments(), loadPublicAssignments()]);
+  } catch (error) {
+    console.error("Failed to create assignment:", error);
+    teacherCreateStatus.textContent = "Failed to create assignment.";
+  }
+}
+
+async function loadTeacherAssignments() {
+  teacherAssignmentList.textContent = "Loading assignments...";
+
+  try {
+    const response = await fetch(`${API_BASE}/teacher/assignments`);
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+
+    const data = await response.json();
+    const assignments = Array.isArray(data.assignments) ? data.assignments : [];
+    renderTeacherAssignments(assignments);
+
+    if (selectedTeacherAssignmentId) {
+      await loadAssignmentSubmissions(selectedTeacherAssignmentId, false);
+    }
+  } catch (error) {
+    console.error("Failed to load teacher assignments:", error);
+    teacherAssignmentList.textContent = "Could not load assignments.";
+  }
+}
+
+async function loadAssignmentSubmissions(assignmentId, clearDetail = true) {
+  selectedTeacherAssignmentId = assignmentId;
+  teacherSubmissionList.textContent = "Loading submissions...";
+
+  if (clearDetail) {
+    teacherSubmissionDetail.textContent = "Select a submission to view details.";
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/teacher/assignments/${assignmentId}/submissions`);
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+
+    const data = await response.json();
+    renderTeacherSubmissions(data.assignment, Array.isArray(data.submissions) ? data.submissions : []);
+  } catch (error) {
+    console.error("Failed to load submissions:", error);
+    teacherSubmissionList.textContent = "Could not load submissions for this assignment.";
+  }
+}
+
+async function loadSubmissionDetail(submissionId) {
+  teacherSubmissionDetail.textContent = "Loading submission details...";
+
+  try {
+    const response = await fetch(`${API_BASE}/teacher/submissions/${submissionId}`);
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+
+    const data = await response.json();
+    renderSubmissionDetail(data);
+  } catch (error) {
+    console.error("Failed to load submission detail:", error);
+    teacherSubmissionDetail.textContent = "Could not load submission details.";
+  }
+}
+
+function handleAssignmentChange() {
+  persistCurrentAssignmentDraft();
+  currentAssignmentId = assignmentSelect.value;
+
+  if (!currentAssignmentId) {
+    applyAssignmentState(createEmptyAssignmentState());
+    assignmentPreview.textContent = "No assignment selected.";
+    setEditorEnabled(false);
+    setStatus("Select an assignment to start drafting.", "neutral");
+    return;
+  }
+
+  restoreDraft(currentAssignmentId);
+  setEditorEnabled(true);
+  renderAssignmentPreview();
 }
 
 function seedEditorFormatting() {
   editor.style.fontFamily = fontFamily.value;
   editor.style.fontSize = `${fontSize.value}pt`;
-  editor.style.lineHeight = lineSpacing.value;
 }
 
 function bindToolbar() {
@@ -442,9 +816,7 @@ function bindToolbar() {
   blockFormat.addEventListener("change", () => applyBlockFormat(blockFormat.value));
   fontFamily.addEventListener("change", () => applyFontFamily(fontFamily.value));
   fontSize.addEventListener("change", () => applyFontSize(fontSize.value));
-  lineSpacing.addEventListener("change", () => applyLineSpacing(lineSpacing.value));
 
-  document.getElementById("insertTable").addEventListener("click", insertTable);
   document.getElementById("saveDraft").addEventListener("click", () => saveDraft(true));
   document.getElementById("exportPDF").addEventListener("click", exportToPdf);
   document.getElementById("submitAssignment").addEventListener("click", submitAssignment);
@@ -461,26 +833,40 @@ function syncToolbarState() {
   }
 }
 
-function init() {
-  restoreDraft();
+function bindDashboardEvents() {
+  studentModeButton.addEventListener("click", () => toggleMode("student"));
+  teacherModeButton.addEventListener("click", () => toggleMode("teacher"));
+  assignmentSelect.addEventListener("change", handleAssignmentChange);
+  createAssignmentButton.addEventListener("click", createAssignment);
+  refreshTeacherData.addEventListener("click", loadTeacherAssignments);
+}
+
+async function init() {
+  const defaultMode = document.body.dataset.defaultMode === "teacher" ? "teacher" : "student";
+
   seedEditorFormatting();
   updateStats();
   updateSessionClock();
   bindToolbar();
+  bindDashboardEvents();
+  toggleMode(defaultMode);
   lastText = getPlainText();
+  setEditorEnabled(false);
 
   editor.addEventListener("paste", trackPaste);
   editor.addEventListener("input", trackInput);
   editor.addEventListener("mouseup", syncToolbarState);
   editor.addEventListener("keyup", syncToolbarState);
   document.addEventListener("keydown", trackKeyboardEvent);
+
   setInterval(updateSessionClock, 1000);
-  checkBackendHealth();
+  await checkBackendHealth();
   setInterval(checkBackendHealth, 15000);
 
+  await loadPublicAssignments();
+
   window.addEventListener("beforeunload", () => saveDraft());
-  setStatus("Editor ready. Drafts are saved locally as you type.");
+  setStatus("Editor ready. Submit sends data to teacher dashboard only.");
 }
 
-window.submitAssignment = submitAssignment;
 init();

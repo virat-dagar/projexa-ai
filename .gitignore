@@ -124,5 +124,10 @@ coverage/
 *.gz
 *.zip
 *.tar
-.
-c
+
+# WriteTrace runtime data
+writetrace-clean/backend/data/
+
+# Keep deploy templates trackable
+!.env.example
+!**/.env.example

@@ -1,0 +1,1 @@
+window.WRITETRACE_CONFIG = window.WRITETRACE_CONFIG || {};

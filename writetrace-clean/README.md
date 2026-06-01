@@ -9,16 +9,28 @@ The tool is designed to support manual review. It should not be presented as a s
 ```text
 writetrace-clean/
 ├── backend/
+│   ├── main.py
 │   ├── app.py
-│   └── requirements.txt
+│   ├── Procfile
+│   ├── requirements.txt
+│   └── writetrace_api/
+│       ├── analysis.py
+│       ├── main.py
+│       ├── models.py
+│       ├── routes.py
+│       ├── settings.py
+│       └── storage.py
 ├── frontend/
 │   ├── index.html
 │   ├── editor.css
 │   ├── editor.js
+│   ├── package.json
+│   ├── runtime-config.js
 │   ├── student/
 │   │   └── index.html
 │   └── teacher/
 │       └── index.html
+├── DEPLOYMENT.md
 ├── README.md
 └── run_demo.sh
 ```
@@ -30,6 +42,8 @@ Frontend roles:
 - `frontend/teacher/index.html` - teacher dashboard
 - `frontend/editor.css` - shared styling for all pages
 - `frontend/editor.js` - shared dashboard logic
+- `frontend/runtime-config.js` - generated/deployed API URL configuration
+- `backend/writetrace_api/storage.py` - JSON-backed assignment/submission store
 
 ## Analysis Layers
 
@@ -64,6 +78,10 @@ pip install -r backend/requirements.txt
 
 Use `./run_demo.sh` from inside `writetrace-clean` to start both servers. The script serves the `frontend/` directory as the web root, so the dashboard URLs above work directly.
 
+## Deploy
+
+Use `DEPLOYMENT.md` for the production checklist. The recommended setup is Vercel for the static frontend and Render for the FastAPI backend.
+
 ## Timing Model
 
 - The session clock starts on the first editor input/paste (not on page load).
@@ -72,5 +90,5 @@ Use `./run_demo.sh` from inside `writetrace-clean` to start both servers. The sc
 ## Notes
 
 - Ensure all dependencies are installed before running the demo.
-- Assignments and submissions are stored in memory in the backend for the demo. Restarting the backend clears them.
+- Assignments and submissions are stored in `backend/data/writetrace-store.json` by default. On hosted backends, set `WRITETRACE_DATA_FILE` to a writable persistent path.
 - Content-pattern analysis is heuristic and offline. It does not send student writing to an external AI service.

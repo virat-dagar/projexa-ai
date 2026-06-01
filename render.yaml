@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: writetrace-api
+    runtime: python
+    rootDir: writetrace-clean/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: WRITETRACE_CORS_ORIGINS
+        sync: false
+      - key: WRITETRACE_DATA_FILE
+        value: /var/data/writetrace-store.json
+    disk:
+      name: writetrace-data
+      mountPath: /var/data
+      sizeGB: 1

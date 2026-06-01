@@ -30,7 +30,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-"$PYTHON_BIN" -m uvicorn app:app --host 127.0.0.1 --port "$BACKEND_PORT" --app-dir "$BACKEND_DIR" &
+"$PYTHON_BIN" -m uvicorn main:app --host 127.0.0.1 --port "$BACKEND_PORT" --app-dir "$BACKEND_DIR" &
 BACKEND_PID=$!
 
 python3 -m http.server "$FRONTEND_PORT" --directory "$FRONTEND_DIR" &

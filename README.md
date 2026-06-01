@@ -29,14 +29,19 @@ The final score is a weighted combination that gives more importance to behaviou
 .
 +-- writetrace-clean/
 |   +-- backend/
+|   |   +-- main.py
 |   |   +-- app.py
 |   |   +-- requirements.txt
+|   |   +-- writetrace_api/
 |   +-- frontend/
 |   |   +-- index.html
 |   |   +-- editor.css
 |   |   +-- editor.js
+|   |   +-- package.json
 |   +-- README.md
+|   +-- DEPLOYMENT.md
 |   +-- run_demo.sh
+|-- render.yaml
 +-- documents/
 |   +-- Design-and-Development-of-a-Behavioural-Academic-Integrity-Checker.pdf
 |   +-- Design-and-Development-of-a-Behavioural-Academic-Integrity-Checker.pptx
@@ -64,6 +69,15 @@ After starting the demo:
 - Backend: `http://127.0.0.1:8000`
 - Backend health check: `http://127.0.0.1:8000/health`
 
+## Deploy
+
+Use `writetrace-clean/DEPLOYMENT.md` for the full checklist. The recommended production-ish setup is:
+
+- Vercel static frontend from `writetrace-clean/frontend`
+- Render FastAPI backend from `writetrace-clean/backend`
+
+The whole app can technically run on Vercel only if you replace local JSON storage with an external database. For this project demo, splitting frontend/backend is simpler and more reliable.
+
 ## Backend API
 
 - `GET /health` checks whether the backend is running.
@@ -78,7 +92,8 @@ After starting the demo:
 
 ## Notes
 
-- The backend is built with FastAPI.
+- The backend is built with FastAPI and split into settings, routes, storage, models, and analysis modules.
 - The frontend is plain HTML, CSS, and JavaScript.
+- Assignment/submission data is stored in `writetrace-clean/backend/data/writetrace-store.json` locally and can be pointed at a persistent deploy path with `WRITETRACE_DATA_FILE`.
 - For the demo, the session clock starts on the first editor input/paste (not on page load).
 - The content-pattern analysis is heuristic and offline. It does not send student writing to an external AI service.

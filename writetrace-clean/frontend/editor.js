@@ -36,9 +36,16 @@ const STORAGE_KEY = "writetrace-draft";
 const ASSIGNMENT_STATE_PREFIX = "writetrace-assignment-state-";
 const LARGE_INSERT_THRESHOLD = 200;
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
-const API_BASE = LOCAL_HOSTNAMES.has(window.location.hostname)
-  ? "http://127.0.0.1:8000"
-  : "https://projexa-ai.onrender.com";
+const RUNTIME_CONFIG = window.WRITETRACE_CONFIG || {};
+const HAS_CONFIGURED_API_BASE = Object.prototype.hasOwnProperty.call(RUNTIME_CONFIG, "apiBaseUrl");
+
+function normalizeApiBase(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+const API_BASE = HAS_CONFIGURED_API_BASE
+  ? normalizeApiBase(RUNTIME_CONFIG.apiBaseUrl)
+  : (LOCAL_HOSTNAMES.has(window.location.hostname) ? "http://127.0.0.1:8000" : "/api");
 
 let eventLog = [];
 let sessionStart = null;
@@ -218,6 +225,15 @@ function setBackendStatus(message, tone = "neutral") {
   backendStatus.dataset.state = tone;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function focusEditor() {
   ensureEditorSeed();
   editor.focus();
@@ -329,10 +345,10 @@ function renderAssignmentPreview() {
   }
 
   assignmentPreview.innerHTML = `
-    <strong>${selected.title}</strong><br>
-    Due: ${selected.due_date}<br>
-    Max Score: ${selected.max_score}<br><br>
-    ${selected.description}
+    <strong>${escapeHtml(selected.title)}</strong><br>
+    Due: ${escapeHtml(selected.due_date)}<br>
+    Max Score: ${escapeHtml(selected.max_score)}<br><br>
+    ${escapeHtml(selected.description)}
   `;
 }
 
@@ -416,7 +432,7 @@ function renderDetailList(items) {
     return "<p>None detected.</p>";
   }
 
-  return `<ul class="detail-list">${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+  return `<ul class="detail-list">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
 }
 
 function renderSubmissionDetail(detail) {
@@ -439,17 +455,17 @@ function renderSubmissionDetail(detail) {
   const riskRows = riskSignals.slice(0, 6).map((signal) => `${signal.label}: ${signal.detail}`);
 
   teacherSubmissionDetail.innerHTML = `
-    <strong>Assignment:</strong> ${detail.assignment_title}<br>
-    <strong>Student:</strong> ${detail.student_name} (${detail.student_id})<br>
-    <strong>Submitted:</strong> ${detail.submitted_at}
+    <strong>Assignment:</strong> ${escapeHtml(detail.assignment_title)}<br>
+    <strong>Student:</strong> ${escapeHtml(detail.student_name)} (${escapeHtml(detail.student_id)})<br>
+    <strong>Submitted:</strong> ${escapeHtml(detail.submitted_at)}
 
     <div class="detail-metric-grid">
-      <div class="detail-chip">Combined Risk: ${analysis.risk_score ?? "--"}/100</div>
-      <div class="detail-chip">Risk Level: ${analysis.risk_level ?? "--"}</div>
-      <div class="detail-chip">Behavior Score: ${analysis.behavior_analysis?.risk_score ?? "--"}/100</div>
-      <div class="detail-chip">Content Score: ${analysis.content_analysis?.risk_score ?? "--"}/100</div>
-      <div class="detail-chip">Paste Ratio: ${metrics.paste_ratio_percent ?? "--"}%</div>
-      <div class="detail-chip">Words Per Minute: ${metrics.words_per_minute ?? "--"}</div>
+      <div class="detail-chip">Combined Risk: ${escapeHtml(analysis.risk_score ?? "--")}/100</div>
+      <div class="detail-chip">Risk Level: ${escapeHtml(analysis.risk_level ?? "--")}</div>
+      <div class="detail-chip">Behavior Score: ${escapeHtml(analysis.behavior_analysis?.risk_score ?? "--")}/100</div>
+      <div class="detail-chip">Content Score: ${escapeHtml(analysis.content_analysis?.risk_score ?? "--")}/100</div>
+      <div class="detail-chip">Paste Ratio: ${escapeHtml(metrics.paste_ratio_percent ?? "--")}%</div>
+      <div class="detail-chip">Words Per Minute: ${escapeHtml(metrics.words_per_minute ?? "--")}</div>
     </div>
 
     <h3>Top Risk Signals</h3>
@@ -673,7 +689,7 @@ async function submitAssignment() {
     saveDraft(false, assignmentId);
   } catch (error) {
     console.error("Submission failed:", error);
-    setSubmitMessage("Submission failed. Make sure backend is running on port 8000.", "error");
+    setSubmitMessage("Submission failed. Make sure the backend API is reachable.", "error");
     setStatus("Could not reach backend. Start API and try again.", "error");
     setBackendStatus("Offline", "offline");
   }

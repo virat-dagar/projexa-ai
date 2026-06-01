@@ -131,3 +131,6 @@ writetrace-clean/backend/data/
 # Keep deploy templates trackable
 !.env.example
 !**/.env.example
+
+
+documents/

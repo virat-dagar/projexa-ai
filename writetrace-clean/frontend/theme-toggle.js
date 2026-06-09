@@ -29,7 +29,11 @@ function toggleTheme() {
 }
 
 if (themeToggle) {
+  initTheme();
   themeToggle.addEventListener("click", toggleTheme);
+} else {
+  const storedTheme = getStoredTheme();
+  if (storedTheme) {
+    applyTheme(storedTheme);
+  }
 }
-
-initTheme();

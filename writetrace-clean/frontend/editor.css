@@ -12,6 +12,20 @@
   --shadow: 0 20px 45px rgba(59, 37, 17, 0.12);
 }
 
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --bg-strong: #111827;
+  --panel: rgba(20, 31, 52, 0.78);
+  --paper: #131f36;
+  --paper-edge: #31445f;
+  --text: #e7edf7;
+  --muted: #a5b6cf;
+  --accent: #38bdf8;
+  --accent-dark: #0ea5e9;
+  --border: #31445f;
+  --shadow: 0 18px 42px rgba(2, 6, 23, 0.55);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -96,6 +110,18 @@ textarea {
   padding: 9px 14px;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.theme-toggle {
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .landing-hero {
@@ -644,6 +670,75 @@ a.primary-button {
 
 .detail-list li + li {
   margin-top: 8px;
+}
+
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 32%),
+    linear-gradient(135deg, var(--bg), #0f172a 45%, var(--bg-strong));
+}
+
+:root[data-theme="dark"] .landing-topbar,
+:root[data-theme="dark"] .workspace-topbar {
+  background: rgba(18, 28, 46, 0.74);
+  border-color: rgba(49, 68, 95, 0.92);
+}
+
+:root[data-theme="dark"] .topbar-links a,
+:root[data-theme="dark"] .ghost-link,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .mode-button,
+:root[data-theme="dark"] .tool-button,
+:root[data-theme="dark"] .secondary-button,
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] .teacher-item,
+:root[data-theme="dark"] .teacher-detail,
+:root[data-theme="dark"] .metric-tile {
+  background: #111b31;
+}
+
+:root[data-theme="dark"] .landing-hero {
+  background:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(19, 31, 54, 0.92), rgba(12, 24, 43, 0.95));
+  border-color: rgba(49, 68, 95, 0.9);
+}
+
+:root[data-theme="dark"] .landing-panel,
+:root[data-theme="dark"] .entry-card,
+:root[data-theme="dark"] .workflow-step,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .panel-card,
+:root[data-theme="dark"] .editor-shell,
+:root[data-theme="dark"] .toolbar,
+:root[data-theme="dark"] .paper-frame,
+:root[data-theme="dark"] .assignment-preview,
+:root[data-theme="dark"] .detail-chip {
+  border-color: rgba(49, 68, 95, 0.9);
+}
+
+:root[data-theme="dark"] .entry-card,
+:root[data-theme="dark"] .panel-card,
+:root[data-theme="dark"] .editor-shell,
+:root[data-theme="dark"] .assignment-preview,
+:root[data-theme="dark"] .detail-chip {
+  background: rgba(17, 27, 49, 0.85);
+}
+
+:root[data-theme="dark"] .workflow-step,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .toolbar {
+  background: rgba(16, 26, 45, 0.8);
+}
+
+:root[data-theme="dark"] .paper-frame {
+  background: linear-gradient(180deg, rgba(22, 35, 60, 0.9), rgba(13, 24, 42, 0.84));
+}
+
+:root[data-theme="dark"] .editor-surface {
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
 }
 
 @media (max-width: 980px) {
